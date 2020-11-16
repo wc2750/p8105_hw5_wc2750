@@ -90,7 +90,7 @@ results_df %>%
 ```
 
 ## Problem 2
-Import one dataset
+Import and tidy cohort dataset
 ```{r message = FALSE}
 cohort_df = 
   tibble(
@@ -108,3 +108,19 @@ cohort_df =
 # preview cohort_df
 cohort_df
 ```
+
+Make a spaghetti plot
+```{r}
+cohort_df %>%
+  pivot_longer(week_1:week_8,
+               names_to = "week",
+               values_to = "observation") %>%
+  mutate(week = str_replace(week, "week_", "")) %>%
+  ggplot(aes(x = week, y = observation, group = id, color = id)) +
+  geom_line() +
+  facet_grid(.~arm) +
+  labs(title = "Observations on each subject over time") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+For control group, the observation values of all subjects keep stable along with an average value in `r cohort_df %>% pivot_longer(week_1:week_8,names_to = "week", values_to = "observation") %>% filter(arm == "control") %>% summarize(average = mean(observation)) %>% pull(average) %>% round(2)`  with some fluctuations over the 8 weeks; For experimental group, the observation values are generally above 0 and gradually increase from an average in `r cohort_df %>% filter(arm == "experimental") %>% summarize(average = mean(week_1)) %>% pull(average) %>% round(2)` at week 1 to an average in `r cohort_df %>% filter(arm == "experimental") %>% summarize(average = mean(week_8)) %>% pull(average) %>% round(2)` at week 8.
