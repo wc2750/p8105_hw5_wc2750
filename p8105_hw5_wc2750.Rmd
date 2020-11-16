@@ -124,3 +124,26 @@ cohort_df %>%
 ```
 
 For control group, the observation values of all subjects keep stable along with an average value in `r cohort_df %>% pivot_longer(week_1:week_8,names_to = "week", values_to = "observation") %>% filter(arm == "control") %>% summarize(average = mean(observation)) %>% pull(average) %>% round(2)`  with some fluctuations over the 8 weeks; For experimental group, the observation values are generally above 0 and gradually increase from an average in `r cohort_df %>% filter(arm == "experimental") %>% summarize(average = mean(week_1)) %>% pull(average) %>% round(2)` at week 1 to an average in `r cohort_df %>% filter(arm == "experimental") %>% summarize(average = mean(week_8)) %>% pull(average) %>% round(2)` at week 8.
+
+## Problem 3
+First generate 5000 datasets with μ = 0
+```{r}
+# creat function for t test
+t_test = function(u){
+  vec = rnorm(30, sd = 5, mean = u)
+  t.test(vec, alternative = "two.sided") %>%
+    broom::tidy() %>%
+    select(estimate, p.value)
+}
+```
+
+```{r}
+# simulate 5000 datasets with μ = 0
+set.seed(123)
+sim_results0 = 
+  rerun(5000, t_test(0)) %>%
+  bind_rows
+
+# preview sim_results0
+sim_results0
+```
