@@ -92,11 +92,19 @@ results_df %>%
 ## Problem 2
 Import one dataset
 ```{r message = FALSE}
-path_df = 
+cohort_df = 
   tibble(
     path = list.files("lda_data")
 ) %>%
   mutate(path = str_c("lda_data/", path),
          data = map(.x = path, ~read_csv(.x))) %>%
-  unnest(data)
+  unnest(data) %>%
+  mutate(id = str_replace(path, "lda_data/", ""),
+         id = str_replace(id, ".csv", "")) %>%
+  select(-path) %>%
+  mutate(arm = ifelse(str_detect(id, "con"), "control", "experimental")) %>%
+  relocate(id, arm)
+
+# preview cohort_df
+cohort_df
 ```
