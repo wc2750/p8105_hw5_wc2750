@@ -9,6 +9,7 @@ editor_options:
 
 ```{r setup, include = FALSE}
 library(tidyverse)
+library(patchwork)
 
 knitr::opts_chunk$set(
   fig.width = 6,
@@ -147,3 +148,69 @@ sim_results0 =
 # preview sim_results0
 sim_results0
 ```
+
+Repeat the above for μ={1,2,3,4,5,6}
+```{r}
+set.seed(123)
+sim_results =
+  tibble(sample_mean = c(1,2,3,4,5,6)) %>%
+  mutate(
+    output_lists = map(.x = sample_mean, ~rerun(5000, t_test(.x))),
+    estimate_dfs = map(output_lists, bind_rows)
+  ) %>%
+  select(-output_lists) %>%
+  unnest(estimate_dfs)
+
+# preview sim_results
+sim_results
+```
+
+Make a plot showing the proportion of times the null was rejected (the power of the test) on the y axis and the true value of μ on the x axis
+```{r}
+sim_results %>%
+  group_by(sample_mean) %>%
+  mutate(rej_prop = sum(p.value<0.05)/5000,
+         sample_mean = str_c("μ =", sample_mean)) %>%
+  ggplot(aes(x = sample_mean, y = rej_prop, color = sample_mean)) +
+  geom_point() +
+  labs(x = "Sample mean", y = "Rejection proportion", title = "Power of the test vs True μ") +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "none")
+```
+
+Based on the plot, we can see that with increased value of sample mean, the rejection proportion increases and approaches 100%. Generally speaking, when the effect size based on the difference in averages increases, the power of the test increases.
+
+Make a plot showing average estimate of μ^ vs true μ
+```{r}
+all_estimate_plot = 
+  sim_results %>%
+  group_by(sample_mean) %>%
+  mutate(average_est = mean(estimate),
+         sample_mean = str_c("μ =", sample_mean)) %>%
+  ggplot(aes(x = sample_mean, y = average_est, color = sample_mean)) +
+  geom_point() +
+  scale_y_continuous(breaks = c(1,2,3,4,5,6)) +
+  labs(x = "Sample mean", y = "Average estimate of μ^", title = "Average estimate of μ^ vs True μ") +
+  theme(plot.title = element_text(hjust = 0.5, size = 12), legend.position = "none")
+```
+
+Make a second plot showing average estimate of rejected μ^ vs true μ
+```{r}
+reject_estimate_plot = 
+  sim_results %>%
+  group_by(sample_mean) %>%
+  filter(p.value<0.05) %>%
+  mutate(average_rej = mean(estimate),
+         sample_mean = str_c("μ =", sample_mean)) %>%
+  ggplot(aes(x = sample_mean, y = average_rej, color = sample_mean)) +
+  geom_point() +
+  scale_y_continuous(breaks = c(1,2,3,4,5,6), limits = c(1,6)) +
+  labs(x = "Sample mean", y = "Average estimate of rejected μ^", title = "Average estimate of rejected μ^ vs True μ") +
+  theme(plot.title = element_text(hjust = 0.5, size = 12), legend.position = "none")
+```
+
+```{r}
+# patchwork
+all_estimate_plot + reject_estimate_plot
+```
+
+For μ = {1,2,3}, the sample average of μ^ across tests for which the null is rejected is greater than the true value of μ since their effect size is small and less proportion of extreme estimates is rejected; For μ = {4,5,6}, the rejected estimates are approximately equal to the true μ since these samples have large effect sizes with nearly 100% rejection proportions.
